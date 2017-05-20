@@ -1,7 +1,6 @@
 package jobsvc
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 )
@@ -32,7 +31,7 @@ func (svc Service) GetJobs(request getJobsRequest) (getJobsResponse, error) {
 
 	// We only filter the jobs that fits the query
 	for _, value := range jobs {
-		if strings.Index(strings.ToLower(value.Name), query) != -1 {
+		if strings.Contains(strings.ToLower(value.Name), query) {
 			filteredJobs = append(filteredJobs, value)
 		}
 	}
@@ -44,22 +43,22 @@ type getJobRequest struct {
 }
 
 type getJobResponse struct {
-	Job
+	*Job
 }
 
 // GetJob service returns a list of jobs
 func (svc Service) GetJob(request getJobRequest) (getJobResponse, error) {
 	id := request.ID
 
-	var job Job
+	var job *Job
 	for _, value := range jobs {
 		if value.ID == id {
-			job = value
+			job = &value
 			break
 		}
 	}
-	if (Job{} == job) {
-		return getJobResponse{}, errors.New(fmt.Sprintf("The job with the id %d is not found", id))
+	if job == nil {
+		return getJobResponse{}, fmt.Errorf("The job with the id %d is not found", id)
 
 	}
 	return getJobResponse{job}, nil
