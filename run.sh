@@ -1,0 +1,1 @@
+CONFIG=env/dev.json go run main.go
