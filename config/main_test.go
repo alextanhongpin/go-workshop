@@ -11,15 +11,15 @@ func TestCheckEnvironments(t *testing.T) {
 		env  string
 		path string
 	}{
-		{"STAGING", "env/stage.json"},
-		{"DEVELOPMENT", "env/dev.json"},
-		{"PRODUCTION", "env/prod.json"},
-		{"TESTING", "env/test.json"},
+		{"staging", "env/stage.json"},
+		{"development", "env/dev.json"},
+		{"production", "env/prod.json"},
+		{"testing", "env/test.json"},
 	}
 
 	for _, value := range environments {
-		os.Setenv("ENV", value.env)
-		env := os.Getenv("ENV")
+		os.Setenv("env", value.env)
+		env := os.Getenv("env")
 		actual := checkEnvironment(env)
 		expected := value.path
 		if actual != expected {

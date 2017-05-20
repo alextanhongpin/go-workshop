@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 )
 
 // Configuration will contain the config for our program
@@ -23,33 +22,31 @@ func init() {
 func loadConfig(configuration *Configuration) {
 	// Read the ENV from the command line
 	// $ ENV=DEVELOPMENT go run main.go
-	env := os.Getenv("ENV")
+	env := os.Getenv("env")
 	if env == "" {
-		fmt.Println("ConfigError: The ENV is not defined. Defaults to `DEVELOPMENT`.")
-		env = "DEVELOPMENT"
+		fmt.Println("ConfigError: The `env` flag is not defined. Defaults to `development`.")
+		env = "development"
 	}
 	pathToConfig := checkEnvironment(env)
 	file, _ := os.Open(pathToConfig)
 	decoder := json.NewDecoder(file)
 
-	err := decoder.Decode(&configuration)
-
-	if err != nil {
-		fmt.Println("error:", err)
+	if err := decoder.Decode(&configuration); err != nil {
+		fmt.Println("ConfigError: ", err)
 	}
-	fmt.Println("config.go: Loaded config for environment " + strings.ToLower(env) + ".")
+	fmt.Println("config.go: Loaded config for environment " + env + ".")
 }
 
 // checkEnvironment will return the path to config based on the env
 func checkEnvironment(env string) string {
 	switch env {
-	case "DEVELOPMENT":
+	case "development":
 		return "env/dev.json"
-	case "STAGING":
+	case "staging":
 		return "env/stage.json"
-	case "PRODUCTION":
+	case "production":
 		return "env/prod.json"
-	case "TESTING":
+	case "testing":
 		return "env/test.json"
 	default:
 		return "env/dev.json"
