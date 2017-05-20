@@ -20,7 +20,7 @@ func TestCheckEnvironments(t *testing.T) {
 	for _, value := range environments {
 		os.Setenv("env", value.env)
 		env := os.Getenv("env")
-		actual := checkEnvironment(env)
+		actual := getPath(env)
 		expected := value.path
 		if actual != expected {
 			t.Errorf("Test failed, expected %s, got %s", expected, actual)
