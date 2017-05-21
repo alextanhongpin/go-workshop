@@ -2,6 +2,7 @@ package jobsvc
 
 import (
 	// Standard packages
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -15,7 +16,7 @@ import (
 type Endpoint struct{}
 
 // GetJobs will return a list of jobs
-func (endpoint Endpoint) GetJobs(service Service) httprouter.Handle {
+func (Endpoint) GetJobs(service Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		// Construct a request
 		req := getJobsRequest{
@@ -30,12 +31,12 @@ func (endpoint Endpoint) GetJobs(service Service) httprouter.Handle {
 		}
 
 		// Return the payload as json
-		httputil.Json(w, res)
+		httputil.Json(w, res, http.StatusOK)
 	}
 }
 
 // GetJob will return a job by id
-func (endpoint Endpoint) GetJob(service Service) httprouter.Handle {
+func (Endpoint) GetJob(service Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		// Get the string id and convert it to int
 		id, err := strconv.Atoi(ps.ByName("id"))
@@ -55,6 +56,71 @@ func (endpoint Endpoint) GetJob(service Service) httprouter.Handle {
 			httputil.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		httputil.Json(w, res)
+		httputil.Json(w, res, http.StatusOK)
+	}
+}
+
+func (Endpoint) CreateJob(service Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+		var req createJobRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			httputil.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		res, err := service.CreateJob(req)
+		if err != nil {
+			httputil.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		httputil.Json(w, res, http.StatusCreated)
+	}
+}
+
+func (Endpoint) DeleteJob(service Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+		var req deleteJobRequest
+		id, err := strconv.ParseInt(ps.ByName("id"), 10, 64)
+		if err != nil {
+			httputil.Error(w, err.Error(), http.StatusBadRequest)
+			return
+
+		}
+		req.ID = id
+
+		res, err := service.DeleteJob(req)
+		if err != nil {
+			httputil.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		httputil.Json(w, res, http.StatusNoContent)
+	}
+}
+
+func (Endpoint) UpdateJob(service Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+		var req updateJobRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			httputil.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		id, err := strconv.ParseInt(ps.ByName("id"), 10, 64)
+		if err != nil {
+			httputil.Error(w, err.Error(), http.StatusBadRequest)
+			return
+
+		}
+		req.ID = id
+
+		res, err := service.UpdateJob(req)
+		if err != nil {
+			httputil.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		httputil.Json(w, res, http.StatusNoContent)
 	}
 }

@@ -1,3 +1,7 @@
 {
-  "port": 8080
+  "port": 8080,
+  "db_host": "localhost",
+  "db_user": "root",
+  "db_password": "123456",
+  "db_database": "gotest"
 }

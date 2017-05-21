@@ -6,7 +6,8 @@ import (
 )
 
 // Json encodes a generic http response
-func Json(w http.ResponseWriter, response interface{}) {
+func Json(w http.ResponseWriter, response interface{}, code int) {
+	w.WriteHeader(code)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
