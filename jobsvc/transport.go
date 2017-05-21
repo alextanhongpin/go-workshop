@@ -1,26 +1,21 @@
 package jobsvc
 
 import (
-	"github.com/alextanhongpin/go-workshop/database"
+	"database/sql"
 
 	"github.com/julienschmidt/httprouter"
 )
 
-var service Service
+var svc Service
 var endpoint Endpoint
 
-func init() {
-	endpoint = Endpoint{}
-	service = Service{
-		DB: database.DB(),
+func Register(router *httprouter.Router, database *sql.DB) {
+	svc = Service{
+		DB: database,
 	}
-}
-
-func Register(router *httprouter.Router) {
-
-	router.GET("/jobs", endpoint.GetJobs(service))
-	router.GET("/jobs/:id", endpoint.GetJob(service))
-	router.POST("/jobs", endpoint.CreateJob(service))
-	router.DELETE("/jobs/:id", endpoint.DeleteJob(service))
-	router.PUT("/jobs/:id", endpoint.UpdateJob(service))
+	router.GET("/jobs", endpoint.GetJobs(svc))
+	router.GET("/jobs/:id", endpoint.GetJob(svc))
+	router.POST("/jobs", endpoint.CreateJob(svc))
+	router.DELETE("/jobs/:id", endpoint.DeleteJob(svc))
+	router.PUT("/jobs/:id", endpoint.UpdateJob(svc))
 }

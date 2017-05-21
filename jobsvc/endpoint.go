@@ -16,15 +16,13 @@ import (
 type Endpoint struct{}
 
 // GetJobs will return a list of jobs
-func (Endpoint) GetJobs(service Service) httprouter.Handle {
+func (Endpoint) GetJobs(svc Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		// Construct a request
-		req := getJobsRequest{
-			Query: r.URL.Query().Get("query"), //r.FormValue("query"),
-		}
+		req := allReq{}
 
 		// Call the service with the request
-		res, err := service.GetJobs(req)
+		res, err := svc.All(req)
 		if err != nil {
 			httputil.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -36,7 +34,7 @@ func (Endpoint) GetJobs(service Service) httprouter.Handle {
 }
 
 // GetJob will return a job by id
-func (Endpoint) GetJob(service Service) httprouter.Handle {
+func (Endpoint) GetJob(svc Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		// Get the string id and convert it to int
 		id, err := strconv.Atoi(ps.ByName("id"))
@@ -46,12 +44,12 @@ func (Endpoint) GetJob(service Service) httprouter.Handle {
 		}
 
 		// Construct a request
-		req := getJobRequest{
+		req := oneReq{
 			ID: id,
 		}
 
 		// Call the service with the request
-		res, err := service.GetJob(req)
+		res, err := svc.One(req)
 		if err != nil {
 			httputil.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -60,16 +58,16 @@ func (Endpoint) GetJob(service Service) httprouter.Handle {
 	}
 }
 
-func (Endpoint) CreateJob(service Service) httprouter.Handle {
+func (Endpoint) CreateJob(svc Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
-		var req createJobRequest
+		var req createReq
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			httputil.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		res, err := service.CreateJob(req)
+		res, err := svc.Create(req)
 		if err != nil {
 			httputil.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -78,10 +76,10 @@ func (Endpoint) CreateJob(service Service) httprouter.Handle {
 	}
 }
 
-func (Endpoint) DeleteJob(service Service) httprouter.Handle {
+func (Endpoint) DeleteJob(svc Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
-		var req deleteJobRequest
+		var req deleteReq
 		id, err := strconv.ParseInt(ps.ByName("id"), 10, 64)
 		if err != nil {
 			httputil.Error(w, err.Error(), http.StatusBadRequest)
@@ -90,7 +88,7 @@ func (Endpoint) DeleteJob(service Service) httprouter.Handle {
 		}
 		req.ID = id
 
-		res, err := service.DeleteJob(req)
+		res, err := svc.Delete(req)
 		if err != nil {
 			httputil.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -99,10 +97,10 @@ func (Endpoint) DeleteJob(service Service) httprouter.Handle {
 	}
 }
 
-func (Endpoint) UpdateJob(service Service) httprouter.Handle {
+func (Endpoint) UpdateJob(svc Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
-		var req updateJobRequest
+		var req updateReq
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			httputil.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -116,7 +114,7 @@ func (Endpoint) UpdateJob(service Service) httprouter.Handle {
 		}
 		req.ID = id
 
-		res, err := service.UpdateJob(req)
+		res, err := svc.Update(req)
 		if err != nil {
 			httputil.Error(w, err.Error(), http.StatusBadRequest)
 			return

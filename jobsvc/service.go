@@ -2,191 +2,151 @@ package jobsvc
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
+
+type service interface {
+	// all returns all the jobs available.
+	All(allReq) (allRes, error)
+	// one returns the job with the specified id.
+	One(oneReq) (oneRes, error)
+	// create saves a job in the database.
+	Create(createReq) (createRes, error)
+	// count returns the number of jobs.
+	// Count(countReq) (countRes, error)
+	// update updates the job with the given id in the database.
+	Update(updateReq) (updateRes, error)
+	// delete removes the job with the given id from the database.
+	Delete(deleteReq) (deleteRes, error)
+}
 
 type Service struct {
 	DB *sql.DB
 }
 
-type getJobsRequest struct {
-	Query string `json:"query"`
-}
+type allReq struct{}
 
-type getJobsResponse struct {
+type allRes struct {
 	Data []Job `json:"data"`
 }
 
-// GetJobs returns a list of jobs
-func (svc Service) GetJobs(request getJobsRequest) (getJobsResponse, error) {
-	// query := request.Query
-
-	var response []Job
-	// Prepare a statement
-	stmt, err := svc.DB.Prepare("SELECT id, name, created_at FROM job")
-	defer stmt.Close()
-	if err != nil {
-		log.Fatal("[PrepareError]", err)
-	}
-
-	rows, err := stmt.Query()
+func (svc Service) All(req allReq) (allRes, error) {
+	var err error
+	var res []Job
+	rows, err := svc.DB.Query("SELECT id, name, created_at FROM job")
 	if err != nil {
 		log.Fatal("[QueryError]", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var id int
-		var name string
-		var createdAt *time.Time
+		var j Job
 
-		err = rows.Scan(&id, &name, &createdAt)
-
+		err = rows.Scan(&j.ID, &j.Name, &j.CreatedAt)
 		if err != nil {
-			log.Fatal("[ScanError]", err)
+			return allRes{}, err
 		}
 
-		response = append(response, Job{
-			ID:        id,
-			Name:      name,
-			CreatedAt: createdAt,
+		res = append(res, Job{
+			ID:        j.ID,
+			Name:      j.Name,
+			CreatedAt: j.CreatedAt,
 		})
 	}
+
 	// rows.Err() will throw an error if the operation in rows.Next() fails
 	if err = rows.Err(); err != nil {
-		fmt.Println("[RowsError]", err)
-		return getJobsResponse{}, err
+		return allRes{}, err
 	}
-	return getJobsResponse{Data: response}, nil
+	return allRes{Data: res}, nil
 }
 
-type getJobRequest struct {
+type oneReq struct {
 	ID int `json:"id"`
 }
 
-type getJobResponse struct {
+type oneRes struct {
 	Data Job `json:"data,omitempty"`
 }
 
 // GetJob service returns a list of jobs
-func (svc Service) GetJob(request getJobRequest) (getJobResponse, error) {
-	id := request.ID
-	fmt.Println("GetJobRequest:", id)
-
+func (svc Service) One(req oneReq) (oneRes, error) {
+	id := req.ID
 	var job Job
-
-	stmt, err := svc.DB.Prepare("SELECT id, name, created_at FROM job WHERE id = ?")
-	defer stmt.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = stmt.QueryRow(id).Scan(&job.ID, &job.Name, &job.CreatedAt)
+	err := svc.DB.QueryRow("SELECT id, name, created_at FROM job WHERE id = ?", id).Scan(&job.ID, &job.Name, &job.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// There are no rows, but otherwise no errors occured
-			return getJobResponse{}, nil
+			return oneRes{}, nil
 		} else {
 			log.Fatal(err)
 		}
 	}
-	return getJobResponse{job}, nil
+	return oneRes{job}, nil
 }
 
-type createJobRequest struct {
+type createReq struct {
 	Name string `json:"name"`
-	Age  int    `json:"age"`
 }
 
-type createJobResponse struct {
+type createRes struct {
 	ID int64 `json:"id"`
 }
 
-func (svc Service) CreateJob(request createJobRequest) (createJobResponse, error) {
-	stmt, err := svc.DB.Prepare("INSERT INTO job (name) values (?)")
-	defer stmt.Close()
+func (svc Service) Create(req createReq) (createRes, error) {
+	res, err := svc.DB.Exec("INSERT INTO job (name) values (?)", req.Name)
 	if err != nil {
-		fmt.Println(err.Error())
-	}
-	// Use exec for UPDATE, DELETE, POST operation
-	res, err := stmt.Exec(request.Name)
-	if err != nil {
-		fmt.Println(err.Error())
+		return createRes{}, err
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
-		fmt.Println(err.Error())
+		return createRes{}, err
 	}
 
-	return createJobResponse{ID: id}, nil
+	return createRes{ID: id}, nil
 }
 
-type deleteJobRequest struct {
+type deleteReq struct {
 	ID int64 `json:"id"`
 }
-type deleteJobResponse struct {
+type deleteRes struct {
 	Ok bool  `json:"ok"` // The success message
 	N  int64 `json:"n"`  // The number of rows deleted
 }
 
-func (svc Service) DeleteJob(request deleteJobRequest) (deleteJobResponse, error) {
-	stmt, err := svc.DB.Prepare("DELETE FROM job WHERE id=?")
-	defer stmt.Close()
+func (svc Service) Delete(req deleteReq) (deleteRes, error) {
+	res, err := svc.DB.Exec("DELETE FROM job WHERE id=?", req.ID)
 	if err != nil {
-		return deleteJobResponse{}, err
-	}
-
-	res, err := stmt.Exec(request.ID)
-	if err != nil {
-		return deleteJobResponse{}, err
+		return deleteRes{}, err
 	}
 
 	n, err := res.RowsAffected()
 	if err != nil {
-		return deleteJobResponse{}, err
+		return deleteRes{}, err
 	}
-	return deleteJobResponse{Ok: true, N: n}, nil
+	return deleteRes{Ok: true, N: n}, nil
 }
 
-type updateJobRequest struct {
+type updateReq struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
 }
 
-type updateJobResponse struct {
+type updateRes struct {
 	Ok bool  `json:"ok"`
 	N  int64 `json:"n"`
 }
 
-func (svc Service) UpdateJob(request updateJobRequest) (updateJobResponse, error) {
-	stmt, err := svc.DB.Prepare("UPDATE job SET name=? WHERE id=?")
-	defer stmt.Close()
-
+func (svc Service) Update(req updateReq) (updateRes, error) {
+	res, err := svc.DB.Exec("UPDATE job SET name=? WHERE id=?", req.Name, req.ID)
 	if err != nil {
-		return updateJobResponse{}, nil
-	}
-
-	res, err := stmt.Exec(request.Name, request.ID)
-	if err != nil {
-		return updateJobResponse{}, nil
+		return updateRes{}, nil
 	}
 	n, err := res.RowsAffected()
 	if err != nil {
-		return updateJobResponse{}, nil
+		return updateRes{}, nil
 	}
-	return updateJobResponse{Ok: true, N: n}, nil
+	return updateRes{Ok: true, N: n}, nil
 }
-
-// https://dev.mysql.com/downloads/mysql/
-// https://askubuntu.com/questions/408676/accessing-mysql-using-terminal-in-ubuntu-13-04
-// 2017-05-20T18:56:04.204985Z 1 [Note] A temporary password is generated for root@localhost: Coo:4(C=l0wo
-
-// If you lose this password, please consult the section How to Reset the Root Password in the MySQL reference manual.
-// mysql -u root -p
-
-// Difference between prepare and query
-//http://stackoverflow.com/questions/37404989/whats-the-difference-between-db-query-and-db-preparestmt-query-in-golang
